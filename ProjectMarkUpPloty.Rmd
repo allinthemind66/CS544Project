@@ -1,0 +1,322 @@
+```{r setup, include=FALSE}
+library(ggplot2)
+require(gridExtra)
+library(dplyr)
+library(plyr)
+library(plotly)
+accidents <- read.csv("/Users/ricknilon/Downloads/CRSS2018CSV/ACCIDENT.csv")
+person <- read.csv("/Users/ricknilon/Downloads/CRSS2018CSV/PERSON.csv")
+```
+
+<style>
+  .col2 {
+    columns: 2 200px;         /* number of columns and width in pixels*/
+    -webkit-columns: 2 200px; /* chrome, safari */
+    -moz-columns: 2 200px;    /* firefox */
+  }
+  .col3 {
+    columns: 3 100px;
+    -webkit-columns: 3 100px;
+    -moz-columns: 3 100px;
+  }
+  .main-container {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+</style>
+
+#### Example of three columns
+
+<div class="col3">
+**1** one  
+**2** two  
+**3** three  
+**4** four  
+**5** five  
+**6** six  
+**7** seven  
+**8** eight  
+**9** nine  
+</div>
+---
+title: "National Highway Traffic Safety Administration (NHTSA) 2018 Accident Report"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+
+# Dataset Information
+Our data set is a sample set of accidents and related accident data compiled by the National Highway Traffic Safety Administration (NHTSA) 2018. Our specific data set is comprised of data from the Crash Report Sampling System(CRSS). This data is a sample of police reported accident data relating to many different aspects of an accident, including pedestrian, motor vehicle, property, etc. Every year, there are more than 6 million reported accidents, and this data set compiles data on accidents that are "of greatest concern to the highway safety community and the general public".
+
+
+# Objective
+Our objective is to gain a deeper insight into different aspects of accident trends. We have focused on a few different areas of accidents, including alcohol use as it relates to other data, area of the US, and others.
+
+# General Accident Trends
+<div class="col2">
+<div>
+## Accident By Hour Of Day
+```{r, echo=FALSE}
+# Hour of Day Of Accidents
+hourOfDayDF <- data.frame(table(accidents$HOUR_IM))
+
+
+
+plot_ly(
+  x = hourOfDayDF$Var1,
+  y = hourOfDayDF$Freq,
+  name = "SF Zoo",
+  type = "bar",
+  width = 600
+)
+```
+</div>
+<div>
+## Accidents By Day Of Week
+```{r, echo=FALSE}
+
+# Day Of Week Of Accidents
+dayOfWeekDF <- data.frame(table(accidents$DAY_WEEK ))
+
+plot_ly(
+  x = dayOfWeekDF$Var1,
+  y = dayOfWeekDF$Freq,
+  name = "Accidents By Day Of Week",
+  type = "bar",
+  width = 600
+) %>%
+  layout(
+    xaxis = list(
+      ticktext = list("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"), 
+      tickvals = list(1, 2, 3,4, 5, 6,7),
+      tickmode = "array"
+  ))
+```
+</div>
+</div>
+
+# Alcohol Use
+```{r, echo=FALSE}
+alcDF <- data.frame(table(accidents$ALCHL_IM))
+
+plot_ly(
+  x = alcDF$Var1,
+  y = alcDF$Freq,
+  name = "Alcohol Use In Accidents",
+  type = "bar",
+  width = 600
+)%>%
+  layout(
+    xaxis = list(
+      ticktext = list("Alcohol Involved", "No Alcohol Involved"), 
+      tickvals = list(1, 2),
+      tickmode = "array"
+  ))
+```
+
+
+<div class="col2">
+<div>
+```{r, echo=FALSE}
+# Alcohol Use vs. Non Alcohol Use By Hour
+alcByAllAccidentsDF <- data.frame(table(accidents$ALCHL_IM,accidents$HOUR_IM))
+alcUse<- alcByAllAccidentsDF[alcByAllAccidentsDF$Var1 == 1,]
+noAlcUse <- alcByAllAccidentsDF[alcByAllAccidentsDF$Var1 == 2,]
+newDataFrame <- data.frame(noAlcUse$Var2, noAlcUse$Freq, alcUse$Freq)
+
+hours <- c(0:23)
+noAlcUseVector <- noAlcUse$Freq
+alcUseVector <- alcUse$Freq
+newDataFrame <- data.frame(hours, noAlcUseVector, alcUseVector)
+alcPlot <- plot_ly(
+  newDataFrame,
+  x = ~hours,
+  y = ~noAlcUseVector,
+  name = "No Alcohol Use",
+  type = "bar",
+  width = 600
+) 
+alcPlot <- alcPlot %>% add_trace(y = ~alcUseVector, name = 'Alcohol Use')
+alcPlot <- alcPlot %>% layout(yaxis = list(title = 'Count'), barmode = 'stack')
+alcPlot
+# Note: add line to bar plot for proportionality?
+# Note: show only alcohol use
+```
+</div>
+<div>
+```{r, echo=FALSE}
+# Alcohol Use vs Accidents By Week Table
+alcoholUseByWeekDF <- data.frame(table(accidents$ALCHL_IM,accidents$DAY_WEEK))
+
+
+alcUse<- alcoholUseByWeekDF[alcoholUseByWeekDF$Var1 == 1,]
+noAlcUse <- alcoholUseByWeekDF[alcoholUseByWeekDF$Var1 == 2,]
+newDataFrame <- data.frame(noAlcUse$Var2, noAlcUse$Freq, alcUse$Freq)
+
+daysOfWeek <- c(1:7)
+noAlcUseVector <- noAlcUse$Freq
+alcUseVector <- alcUse$Freq
+newDataFrame <- data.frame(daysOfWeek, noAlcUseVector, alcUseVector)
+alcPlot <- plot_ly(
+  newDataFrame,
+  x = ~daysOfWeek,
+  y = ~noAlcUseVector,
+  name = "No Alcohol Use",
+  type = "bar",
+  width = 600
+) %>%
+  layout(
+    xaxis = list(
+      ticktext = list("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"), 
+      tickvals = list(1, 2, 3,4, 5, 6,7),
+      tickmode = "array"
+  ))
+alcPlot <- alcPlot %>% add_trace(y = ~alcUseVector, name = 'Alcohol Use')
+alcPlot <- alcPlot %>% layout(yaxis = list(title = 'Count'), barmode = 'stack')
+alcPlot
+
+```
+</div>
+</div>
+
+
+<div class="col2">
+<div>
+```{r, echo=FALSE}
+# Alcohol Use By Hour
+alcByAllAccidentsDF <- data.frame(table(accidents$ALCHL_IM,accidents$HOUR_IM))
+alcUse<- alcByAllAccidentsDF[alcByAllAccidentsDF$Var1 == 1,]
+
+newDataFrame <- data.frame(alcUse$Var2, alcUse$Freq)
+
+hours <- c(0:23)
+
+alcUseVector <- alcUse$Freq
+newDataFrame <- data.frame(hours, alcUseVector)
+alcPlot <- plot_ly(
+  newDataFrame,
+  x = ~hours,
+  y = ~alcUseVector,
+  name = "No Alcohol Use",
+  type = "bar",
+  width = 600
+) 
+alcPlot
+```
+</div>
+<div>
+```{r, echo=FALSE}
+alcoholUseByWeekDF <- data.frame(table(accidents$ALCHL_IM,accidents$DAY_WEEK))
+
+
+alcUse<- alcoholUseByWeekDF[alcoholUseByWeekDF$Var1 == 1,]
+newDataFrame <- data.frame(alcUse$Var2, alcUse$Freq)
+
+daysOfWeek <- c(1:7)
+
+alcUseVector <- alcUse$Freq
+newDataFrame <- data.frame(daysOfWeek, alcUseVector)
+alcPlot <- plot_ly(
+  newDataFrame,
+  x = ~daysOfWeek,
+  y = ~alcUseVector,
+  name = "No Alcohol Use",
+  type = "bar",
+  width = 600
+) %>%
+  layout(
+    xaxis = list(
+      ticktext = list("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"), 
+      tickvals = list(1, 2, 3,4, 5, 6,7),
+      tickmode = "array"
+  ))
+alcPlot
+```
+</div>
+</div>
+
+# Central Limit Theorem
+```{r, echo=FALSE}
+#barplot(table(person$AGE_IM))
+popMean <- mean(person$AGE_IM)
+# => 37.33053
+#popMean
+# => 108680.9
+popSd <- sd(person$AGE_IM)
+#popSd
+
+
+samples <- 10000
+sample.size1 <- 50
+sample.size2 <- 100
+sample.size3 <- 150
+sample.size4 <- 200
+```
+
+```{r, echo=FALSE}
+## Population mean 
+
+paste("Population mean: ", popMean, " Population SD: ", popSd)
+
+# Sample Size 50
+xbar1 <- numeric(samples)
+for(i in 1:samples) {
+  xbar1[i] <- mean(sample(person$AGE_IM, size=sample.size1, replace = F))
+}
+# Sample Size 100
+xbar2 <- numeric(samples)
+for(i in 1:samples) {
+  xbar2[i] <- mean(sample(person$AGE_IM, size=sample.size2, replace = F))
+}
+
+# Sample Size 150
+xbar3 <- numeric(samples)
+for(i in 1:samples) {
+  xbar3[i] <- mean(sample(person$AGE_IM, size=sample.size3, replace = F))
+}
+
+# Sample Size 200
+xbar4 <- numeric(samples)
+for(i in 1:samples) {
+  xbar4[i] <- mean(sample(person$AGE_IM, size=sample.size4, replace = F))
+}
+
+sampleSizes <- c(sample.size1, sample.size2, sample.size3, sample.size4)
+sampleMeans <- c(mean(xbar1),mean(xbar2), mean(xbar3), mean(xbar4))
+sampleSDs <- c(sd(xbar1),sd(xbar2), sd(xbar3), sd(xbar4))
+paste("Population mean: ", round(popMean, 2), " Population SD: ", round(popSd, 2))
+paste("Sample size: ", sampleSizes, "Sample Mean: ", round(sampleMeans, 2), "Sample SD", round(sampleSDs, 2))
+```
+<div class="col2">
+<div>
+```{r, echo=FALSE}
+
+plot_ly(x = xbar1, type = "histogram")
+
+```
+</div>
+<div>
+```{r, echo=FALSE}
+
+plot_ly(x = xbar2, type = "histogram")
+```
+</div>
+</div>
+
+<div class="col2">
+<div>
+```{r, echo=FALSE}
+
+plot_ly(x = xbar3, type = "histogram")
+```
+</div>
+<div>
+```{r, echo=FALSE}
+
+plot_ly(x = xbar4, type = "histogram")
+```
+</div>
+</div>
