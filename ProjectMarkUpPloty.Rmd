@@ -57,6 +57,7 @@ Our objective is to gain a deeper insight into different aspects of accident tre
 
 # General Accident Trends
 <div class="col2">
+The following graphs illustrate the accident trends for the hour of the day and for the day of the week. 
 <div>
 ## Accident By Hour Of Day
 ```{r, echo=FALSE}
