@@ -4,8 +4,24 @@ require(gridExtra)
 library(dplyr)
 library(plyr)
 library(plotly)
-accidents <- read.csv("/Users/ricknilon/Downloads/CRSS2018CSV/ACCIDENT.csv")
-person <- read.csv("/Users/ricknilon/Downloads/CRSS2018CSV/PERSON.csv")
+library(sampling)
+#library(UsingR)
+accidents <- read.csv("./ACCIDENT.csv")
+person <- read.csv("./PERSON.csv")
+
+
+
+#Read 3 data files
+data_per<-read.csv("./PERSON.csv", header=TRUE)
+
+data_acc_pp<-read.csv("./ACCIDENT_2018_pp.csv", header=TRUE)
+
+data_acc<-read.csv("./ACCIDENT.csv", header=TRUE)
+
+#Create 3 data frames
+data_per<-data.frame(data_per)
+data_acc_pp<-data.frame(data_acc_pp)
+data_acc<-data.frame(data_acc)
 ```
 
 <style>
@@ -26,28 +42,6 @@ person <- read.csv("/Users/ricknilon/Downloads/CRSS2018CSV/PERSON.csv")
 }
 </style>
 
-#### Example of three columns
-
-<div class="col3">
-**1** one  
-**2** two  
-**3** three  
-**4** four  
-**5** five  
-**6** six  
-**7** seven  
-**8** eight  
-**9** nine  
-</div>
----
-title: "National Highway Traffic Safety Administration (NHTSA) 2018 Accident Report"
-output: 
-  flexdashboard::flex_dashboard:
-    orientation: columns
-    vertical_layout: fill
----
-
-
 # Dataset Information
 Our data set is a sample set of accidents and related accident data compiled by the National Highway Traffic Safety Administration (NHTSA) 2018. Our specific data set is comprised of data from the Crash Report Sampling System(CRSS). This data is a sample of police reported accident data relating to many different aspects of an accident, including pedestrian, motor vehicle, property, etc. Every year, there are more than 6 million reported accidents, and this data set compiles data on accidents that are "of greatest concern to the highway safety community and the general public".
 
@@ -56,8 +50,48 @@ Our data set is a sample set of accidents and related accident data compiled by 
 Our objective is to gain a deeper insight into different aspects of accident trends. We have focused on a few different areas of accidents, including alcohol use as it relates to other data, area of the US, and others.
 
 # General Accident Trends
+The following graphs illustrate the accident trends for the hour of the day and for the day of the week. The tendency is for most of the accidents happening during typical commuting times, with the lowest amount during the overnight hours (between midnight and 5am). The distribution of accidents per day of week is relatively uniform with the highest amounts occurring on Friday and lower numbers of overall accidents on the weekends. Presumably, this tendency for higher accidents during the week is due to more overall traffic due to commuting.
+
+
+# General Data About 2018 Collisions
+
 <div class="col2">
-The following graphs illustrate the accident trends for the hour of the day and for the day of the week. 
+<div>
+```{r, echo=FALSE}
+#Pull all records that are for Drivers in Collisions
+data_drvr<-data_per[data_per$PER_TYP==1,]
+data_drvr_s<-data_per[data_per$PER_TYP==1 & (data_per$INJSEV_IM==3|data_per$INJSEV_IM==4),]
+#Create unpreprocessed data frame
+data_drvr<-data.frame(data_drvr)
+
+#Collect Frequencies of Drivers
+tbl_drvr<-table(data_drvr$CASENUM)
+tbl_drvr<-data.frame(tbl_drvr)
+colnames(tbl_drvr)<-c("CASENUM","Frequency")
+
+#Extract all records with MAX_SEV below 5
+maxsev_df<-data_acc_pp[(data_acc_pp$MAXSEV_IM<5),]
+
+barp<-ggplot(maxsev_df,aes(REGION_PP))+
+  geom_bar(fill="purple")+labs(title="Accidents By Region", x="Seasons",y="No. of Collisions")
+barp
+```
+</div>
+<div>
+```{r, echo=FALSE}
+#Create Season Bar Plot
+
+season_tbl<-data.frame(table(maxsev_df$Season_mon_pp))
+
+
+barp3<-ggplot(season_tbl,aes(x=Var1, y=Freq ,fill=Freq))+
+  geom_bar(stat="identity")+theme_minimal()+labs(title="Accidents By Seasons", x="Seasons",y="No. of Collisions")
+barp3
+```
+</div>
+</div>
+
+<div class="col2">
 <div>
 ## Accident By Hour Of Day
 ```{r, echo=FALSE}
@@ -100,6 +134,7 @@ plot_ly(
 </div>
 
 # Alcohol Use
+When looking at the amount of alcohol involved in accidents, it was an overall small percentage compared with the overall number of accidents. However, when looking closer at just the accidents involving alcohol, certain trends started to become clearer.
 ```{r, echo=FALSE}
 alcDF <- data.frame(table(accidents$ALCHL_IM))
 
@@ -118,9 +153,10 @@ plot_ly(
   ))
 ```
 
-
+It is hard to see the significance of alcohol when comparing to the overall amount of accidents in our data. However, we can see some trends emerge, wherein the proportion of alcohol involved in accidents increases on the weekend days and Friday, as well as in the evening and overnight hours.
 <div class="col2">
 <div>
+## Alcohol Use Vs. Total Accidents By Hour
 ```{r, echo=FALSE}
 # Alcohol Use vs. Non Alcohol Use By Hour
 alcByAllAccidentsDF <- data.frame(table(accidents$ALCHL_IM,accidents$HOUR_IM))
@@ -148,6 +184,7 @@ alcPlot
 ```
 </div>
 <div>
+## Alcohol Use Vs. Total Accidents By Week
 ```{r, echo=FALSE}
 # Alcohol Use vs Accidents By Week Table
 alcoholUseByWeekDF <- data.frame(table(accidents$ALCHL_IM,accidents$DAY_WEEK))
@@ -183,9 +220,10 @@ alcPlot
 </div>
 </div>
 
-
+What is interesting when observing just accidents involving alcohol, is that the proportion of alcohol related accidents in the data increases as the overall amount of accidents decreases. This leads to an inverse of the overall accident graphs.
 <div class="col2">
 <div>
+## Alcohol Use In Accidents By Hour
 ```{r, echo=FALSE}
 # Alcohol Use By Hour
 alcByAllAccidentsDF <- data.frame(table(accidents$ALCHL_IM,accidents$HOUR_IM))
@@ -209,6 +247,7 @@ alcPlot
 ```
 </div>
 <div>
+## Alcohol Use In Accidents By Week
 ```{r, echo=FALSE}
 alcoholUseByWeekDF <- data.frame(table(accidents$ALCHL_IM,accidents$DAY_WEEK))
 
@@ -240,6 +279,7 @@ alcPlot
 </div>
 
 # Central Limit Theorem
+The Central Limit Theorem (CLT) is a theorem that states that the distribution of sample means of a certain sample size of a population will be, in most cases, a normal distribution. As the sample size increases, the distribution will increasing have a normal distribution. We tried this out with the age of the driver from the PERSON dataset, and the theorem held true. As we increased the sample size, the distribution increasingly became normal.
 ```{r, echo=FALSE}
 #barplot(table(person$AGE_IM))
 popMean <- mean(person$AGE_IM)
@@ -250,11 +290,11 @@ popSd <- sd(person$AGE_IM)
 #popSd
 
 
-samples <- 10000
-sample.size1 <- 50
-sample.size2 <- 100
-sample.size3 <- 150
-sample.size4 <- 200
+samples <- 4000
+sample.size1 <- 10
+sample.size2 <- 20
+sample.size3 <- 30
+sample.size4 <- 40
 ```
 
 ```{r, echo=FALSE}
@@ -293,6 +333,7 @@ paste("Sample size: ", sampleSizes, "Sample Mean: ", round(sampleMeans, 2), "Sam
 ```
 <div class="col2">
 <div>
+### Sample Size 10
 ```{r, echo=FALSE}
 
 plot_ly(x = xbar1, type = "histogram")
@@ -300,6 +341,7 @@ plot_ly(x = xbar1, type = "histogram")
 ```
 </div>
 <div>
+### Sample Size 20
 ```{r, echo=FALSE}
 
 plot_ly(x = xbar2, type = "histogram")
@@ -309,15 +351,252 @@ plot_ly(x = xbar2, type = "histogram")
 
 <div class="col2">
 <div>
+### Sample Size 30
 ```{r, echo=FALSE}
 
 plot_ly(x = xbar3, type = "histogram")
 ```
 </div>
 <div>
+### Sample Size 40
 ```{r, echo=FALSE}
 
 plot_ly(x = xbar4, type = "histogram")
 ```
+</div>
+</div>
+
+
+# Severities x Injuries
+
+In this pie chart we can see the differences in number of injuries from each different type of severities. The biggest type of injuries classification is the possible injuries, where the injuries could be none to below minor. The second most injury is the minor injury, such as bruise and scrapes. The third is serious injury, where it is possible to be life-threatening and need hospital treatment. The least type of injury to occurred is fatal, which have higher chance of ending the life of the victim.       
+
+<div>
+```{r, echo=FALSE}
+numInjSev <- accidents[, c('NUM_INJ', 'MAX_SEV')]
+
+sevCategories <- c(0,1,2,3,4)
+sevCategories2 <- c("No Injuries","Possible Injury","Minor Injury","Serious Injury","Fatal")
+sevNumInjuries <- sevCategories
+
+for (i in 1:length(sevCategories)) {
+  sevNumInjuries[i] = sum(subset(numInjSev, MAX_SEV == sevCategories[i])$NUM_INJ)
+}
+
+pieChartInjSevPp <- plot_ly(numInjSev, labels = ~MAX_SEV_PP, values = ~NUM_INJ, type = 'pie')
+pieChartInjSevPp <- plot_ly(type='pie', labels=sevCategories2, values=sevNumInjuries, 
+                     textinfo='label+percent',
+                     insidetextorientation='radial')
+
+pieChartInjSevPp
+```
+</div>
+
+# Urbanicity
+
+Urbanicity data split between two values, "Urban" and "Rural" accident cases. And we can see from the total accidents data, that urban area have higher accident cases than rural area. This is expected, because urban areas have more traffic than rural area, especially in rush hours. The data concludes that total accidents in rural area only consists of around 30% from the total accidents in the urban area.
+
+```{r, echo=FALSE}
+plot_ly(
+  x = c("Urban", "Rural"),
+  y = as.numeric(table(accidents$URBANICITY)),
+  name = "Urbanicity Accidents",
+  type = "bar"
+)
+```
+
+
+# Severities x Urbanicity
+
+Between the severities and urbanicities, we could see that all types of severities are more prominent in the urban area, while the rural area have less accidents overall. From the data we could conclude that each severities only have around 10% - 25% compare to urban accidents. And each severities-urban accidents are size appropriate to the total accidents, with the no-injuries sit at the highest, follow by possible-injury, then minor-injury, serious-injury, and fatal-injury.
+
+<div>
+```{r, echo=FALSE}
+sevUrban <- accidents[, c('URBANICITY', 'MAX_SEV')]
+sevUrban1 <- subset(sevUrban, (URBANICITY == 1 & (MAX_SEV == 0 | 
+                                                    MAX_SEV == 1 | 
+                                                    MAX_SEV == 2 | 
+                                                    MAX_SEV == 3 | 
+                                                    MAX_SEV == 4)))
+sevUrban2 <- subset(sevUrban, (URBANICITY == 2 & (MAX_SEV == 0 | 
+                                                    MAX_SEV == 1 | 
+                                                    MAX_SEV == 2 | 
+                                                    MAX_SEV == 3 | 
+                                                    MAX_SEV == 4)))
+
+sevUrban1$MAX_SEV[sevUrban1$MAX_SEV == 0] <- "No Injuries" 
+sevUrban1$MAX_SEV[sevUrban1$MAX_SEV == 1] <- "Possible Injury" 
+sevUrban1$MAX_SEV[sevUrban1$MAX_SEV == 2] <- "Minor Injury"
+sevUrban1$MAX_SEV[sevUrban1$MAX_SEV == 3] <- "Serious Injury"
+sevUrban1$MAX_SEV[sevUrban1$MAX_SEV == 4] <- "Fatal"
+
+sevUrban2$MAX_SEV[sevUrban2$MAX_SEV == 0] <- "No Injuries" 
+sevUrban2$MAX_SEV[sevUrban2$MAX_SEV == 1] <- "Possible Injury" 
+sevUrban2$MAX_SEV[sevUrban2$MAX_SEV == 2] <- "Minor Injury"
+sevUrban2$MAX_SEV[sevUrban2$MAX_SEV == 3] <- "Serious Injury"
+sevUrban2$MAX_SEV[sevUrban2$MAX_SEV == 4] <- "Fatal"
+
+sevUrbanHis <- plot_ly(data = sevUrban1, x = sevUrban1$MAX_SEV, 
+                        type = "histogram", name = "Urban")
+sevUrbanHis <- sevUrbanHis %>% add_trace(data = sevUrban2, x = sevUrban2$MAX_SEV, 
+                                             type = "histogram", name = "Rural")
+sevUrbanHis <- sevUrbanHis %>% layout(barmode="stack",bargap=0.1)
+sevUrbanHis
+```
+</div>
+
+# Sampling
+
+We are using 3 different sampling methods for the injuries severities data. The first sampling method is simple random sampling without replacement, where each severity have a chance of being selected as the other severities. The second one is systematic sampling, where the rule used is the total number of cases on each of these severities, divided by the number of sampling size we chose (in this case is 1000). And the final is stratified sampling, where the severities will be segmented into stratas based on the desired sample size (also 1000).
+
+<div>
+```{r, echo=FALSE}
+sevCategories2 <- c("No Injuries","Possible Injury","Minor Injury","Serious Injury","Fatal")
+
+nRow <- nrow(accidents)
+ns <- 1000
+
+set.seed(2692)
+subSev <- subset(accidents, (MAX_SEV == 0 | 
+                            MAX_SEV == 1 | 
+                            MAX_SEV == 2 | 
+                            MAX_SEV == 3 | 
+                            MAX_SEV == 4))
+severities <- subSev$MAX_SEV
+severities[severities == 0] <- sevCategories2[1]
+severities[severities == 1] <- sevCategories2[2]
+severities[severities == 2] <- sevCategories2[3]
+severities[severities == 3] <- sevCategories2[4]
+severities[severities == 4] <- sevCategories2[5]
+frTable <- table(severities)
+
+# Severities frequency plot
+fig1 <- plot_ly(
+  x = row.names(frTable),
+  y = as.numeric(frTable),
+  name = "Severities",
+  type = "bar"
+)
+
+# Simple random sampling without replacement
+sr <- srswor(ns, nRow)
+simpleTable <- table(severities[sr != 0])
+
+fig2 <- plot_ly(
+  x = row.names(simpleTable),
+  y = as.numeric(simpleTable),
+  name = "Severities Random Sampling",
+  type = "bar"
+)
+
+# Systematic sampling
+kss <- ceiling(nRow / ns)
+rss <- sample(kss, 1)
+s <- seq(rss, by = kss, length = ns)
+systematicTable <- table(severities[s])
+
+fig3 <- plot_ly(
+  x = row.names(simpleTable),
+  y = as.numeric(systematicTable),
+  name = "Systematic Sampling",
+  type = "bar"
+)
+
+# Stratified
+freq <- table(severities)
+strSizes <- ns * freq / sum(freq)
+strData <- sampling::strata(subSev, stratanames = c("MAX_SEV"),
+                           size = strSizes, method = "srswr",
+                           description = TRUE)
+sampleStr <- getdata(subSev, strData)
+tableStr <- table(sampleStr$MAX_SEV)
+
+fig4 <- plot_ly(
+  x = sevCategories2,
+  y = as.numeric(tableStr),
+  name = "Stratified",
+  type = "bar"
+)
+
+figs <- plotly::subplot(fig1, fig2, fig3, fig4, shareY = FALSE, nrows = 2, 
+                        margin = 0.1)
+figs
+```
+</div>
+
+
+
+# Additional Driver Information
+<div class="col2">
+
+```{r, echo=FALSE, warning=FALSE}
+
+
+data_per2<-data_per %>%
+  select(CASENUM, VEH_NO, PER_NO, MAKE,MAK_MOD, PER_TYP,AGE_IM, SEX_IM,INJSEV_IM,WEIGHT)
+data_per2<-data.frame(data_per2)
+
+data_acc_pp$CASENUM<-as.character(data_acc_pp$CASENUM)
+tbl_drvr$CASENUM<-as.character(tbl_drvr$CASENUM)
+accident_combined<-data_acc_pp %>% 
+  left_join(tbl_drvr, c("CASENUM"="CASENUM"))
+
+severe_acc<-accident_combined[(accident_combined$MAX_SEV_PP=="SEVERE OR FATAL"),]
+
+#GGPlot Boxplot on number of Drivers in Collisions Resulting in Severe Injury
+boxplot2<-ggplot(severe_acc, aes(x="",y=Frequency))+
+  geom_boxplot()+labs(title="No. of Drivers Involved in Collision Resulting in Severe Injury",
+                      x="", y="Number of Drivers")
+boxplot2
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+  notsevere_acc<-accident_combined[(accident_combined$MAX_SEV_PP=="NOT SEVERE"),]
+    #GGPlot Boxplot on number of Drivers in Collisions Not Resulting in Severe Injury
+boxplot3<-ggplot(notsevere_acc, aes(x="",y=Frequency))+
+  geom_boxplot()+labs(title="No. of Drivers Involved in Collision Not Resulting in Severe Injury",
+                      x="", y="Number of Drivers")+ylim(0,15)
+boxplot3
+```
+</div>
+
+<div class="col2">
+<div>
+```{r, echo=FALSE, warning=FALSE}
+#Barplot about Drivers
+
+
+gen_drv<-data.frame(table(data_drvr$SEX_IM))
+gen_drv_2<-data.frame(table(data_drvr_s$SEX_IM))
+#levels(gen_drv$Var1)<-c("Male","Female")
+               
+levels(gen_drv$Var1)<-c("Male","Female")
+levels(gen_drv_2$Var1)<-c("Male","Female")
+
+
+
+#GGPlot Bar Plot for Gender of Drivers
+barp6<-ggplot(gen_drv,aes(x=Var1, y=Freq, fill=Var1 ))+
+  geom_bar(stat="identity")+scale_fill_manual(values=c("blue", "red"))+
+  labs(title="Drivers Involved in All Collisions", x="Gender of Drivers", 
+       y="Number of Collisions")+ylim(0,50000)
+ 
+barp6
+
+```
+</div>
+<div>
+```{r, echo=FALSE, warning=FALSE}
+
+#GGPlot Bar Plot for Gender of Drivers
+barp7<-ggplot(gen_drv_2,aes(x=Var1, y=Freq, fill=Var1 ))+
+  geom_bar(stat="identity")+scale_fill_manual(values=c("blue", "red"))+
+  labs(title="Drivers Involved in Collisions Resulting in Serious Injury", x="Gender of Drivers", 
+       y="Number of Collisions")+ylim(0,5000)
+barp7
+
+```
+
 </div>
 </div>
